@@ -1,9 +1,7 @@
 import Settlement from '../models/Settlement.js';
 import Group from '../models/Group.js';
 
-// @desc    Record a settlement (payment)
 // @route   POST /api/settlements
-// @access  Private
 export const recordSettlement = async (req, res) => {
   const { groupId, paidTo, amount, status } = req.body;
   const paidBy = req.user._id;

@@ -2,9 +2,7 @@ import Expense from '../models/Expense.js';
 import Group from '../models/Group.js';
 import Settlement from '../models/Settlement.js';
 
-// @desc    Add a new expense
 // @route   POST /api/expenses
-// @access  Private
 export const addExpense = async (req, res) => {
   const { groupId, amount, description, receipt_url, splits } = req.body;
   const paidBy = req.user._id;

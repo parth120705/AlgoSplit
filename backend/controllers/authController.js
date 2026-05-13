@@ -2,9 +2,7 @@ import User from '../models/User.js';
 import generateToken from '../utils/generateToken.js';
 import bcrypt from 'bcryptjs';
 
-// @desc    Auth user & get token
 // @route   POST /api/auth/login
-// @access  Public
 export const loginUser = async (req, res) => {
   const { email, password } = req.body;
 
@@ -27,9 +25,7 @@ export const loginUser = async (req, res) => {
   }
 };
 
-// @desc    Register a new user
 // @route   POST /api/auth/register
-// @access  Public
 export const registerUser = async (req, res) => {
   const { name, email, password } = req.body;
 

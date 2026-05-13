@@ -1,9 +1,7 @@
 import Group from '../models/Group.js';
 import User from '../models/User.js';
 
-// @desc    Create a new group
 // @route   POST /api/groups
-// @access  Private
 export const createGroup = async (req, res) => {
   const { name, description, avatar, members } = req.body;
   
@@ -37,9 +35,7 @@ export const createGroup = async (req, res) => {
   }
 };
 
-// @desc    Get user's groups
 // @route   GET /api/groups
-// @access  Private
 export const getGroups = async (req, res) => {
   try {
     const groups = await Group.find({ members: req.user._id })
@@ -53,9 +49,7 @@ export const getGroups = async (req, res) => {
   }
 };
 
-// @desc    Get group by ID
 // @route   GET /api/groups/:id
-// @access  Private
 export const getGroupById = async (req, res) => {
   try {
     const group = await Group.findById(req.params.id)
@@ -76,9 +70,7 @@ export const getGroupById = async (req, res) => {
   }
 };
 
-// @desc    Add member to group
 // @route   PUT /api/groups/:id/members
-// @access  Private
 export const addMember = async (req, res) => {
   const { email } = req.body;
 

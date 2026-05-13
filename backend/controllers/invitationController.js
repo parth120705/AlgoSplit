@@ -3,9 +3,7 @@ import Group from '../models/Group.js';
 import User from '../models/User.js';
 import { sendEmail } from '../utils/sendEmail.js';
 
-// @desc    Send group invitation
 // @route   POST /api/invitations
-// @access  Private
 // Body: { groupId, email }
 export const sendInvitation = async (req, res) => {
   const { groupId, email } = req.body;
@@ -61,9 +59,7 @@ export const sendInvitation = async (req, res) => {
   }
 };
 
-// @desc    Get pending invitations for logged in user
 // @route   GET /api/invitations
-// @access  Private
 export const getMyInvitations = async (req, res) => {
   try {
     const invitations = await Invitation.find({ inviteeEmail: req.user.email, status: 'pending' })
@@ -77,9 +73,7 @@ export const getMyInvitations = async (req, res) => {
   }
 };
 
-// @desc    Respond to invitation (Accept or Reject)
 // @route   PUT /api/invitations/:id/respond
-// @access  Private
 // Body: { action: 'accept' | 'reject' }
 export const respondToInvitation = async (req, res) => {
   const { action } = req.body;

@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Plus, ArrowLeft, Receipt, Users, CreditCard, Clock, UserPlus } from 'lucide-react';
+import { Plus, ArrowLeft, Receipt, Users, CreditCard, Clock, UserPlus, MessageSquare, X, Send } from 'lucide-react';
 import useStore from '../store/useStore';
 import io from 'socket.io-client';
 import toast from 'react-hot-toast';
@@ -23,6 +23,17 @@ export default function GroupDetails() {
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [memberEmail, setMemberEmail] = useState('');
   const [settlements, setSettlements] = useState([]);
+  const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const isChatOpenRef = useRef(isChatOpen);
+  const messagesEndRef = useRef(null);
+
+  useEffect(() => {
+    isChatOpenRef.current = isChatOpen;
+    if (isChatOpen) setUnreadCount(0);
+  }, [isChatOpen]);
 
   const feed = [
     ...expenses.map(e => ({ ...e, type: 'expense', sortDate: new Date(e.date) })),
@@ -46,6 +57,12 @@ export default function GroupDetails() {
       .then(res => res.json())
       .then(data => setSettlements(data));
 
+    fetch(`http://localhost:5000/api/messages/${id}`, { headers: { 'Authorization': `Bearer ${token}` }})
+      .then(res => res.json())
+      .then(data => {
+         if(Array.isArray(data)) setMessages(data);
+      });
+
     const socket = io('http://localhost:5000');
     socket.emit('join_group', id);
     
@@ -62,8 +79,42 @@ export default function GroupDetails() {
       fetchBalances();
     });
 
+    socket.on('receive_message', (message) => {
+      setMessages(prev => [...prev, message]);
+      if (!isChatOpenRef.current) {
+        setUnreadCount(prev => prev + 1);
+      }
+    });
+
     return () => socket.disconnect();
   }, [id, token]);
+
+  const handleSendMessage = async (e) => {
+    e.preventDefault();
+    if (!newMessage.trim()) return;
+
+    try {
+      const res = await fetch(`http://localhost:5000/api/messages/${id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ text: newMessage })
+      });
+      if (res.ok) {
+        setNewMessage('');
+      } else {
+        toast.error('Failed to send message');
+      }
+    } catch (err) {
+      toast.error('Error sending message');
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    if (isChatOpen && messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, isChatOpen]);
 
   const fetchBalances = () => {
     fetch(`http://localhost:5000/api/expenses/group/${id}/balances`, { headers: { 'Authorization': `Bearer ${token}` }})
@@ -535,6 +586,68 @@ export default function GroupDetails() {
               </div>
             </form>
           </motion.div>
+        </div>
+      )}
+
+      {/* Chat Floating Button */}
+      <button
+        onClick={() => setIsChatOpen(true)}
+        className="fixed bottom-8 right-8 w-16 h-16 bg-primary-600 text-white rounded-full flex items-center justify-center shadow-2xl hover:bg-primary-700 hover:scale-105 transition-all z-40 relative"
+      >
+        <MessageSquare size={28} />
+        {unreadCount > 0 && (
+          <span className="absolute top-0 right-0 -mt-1 -mr-1 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold border-2 border-white shadow-sm">
+            {unreadCount > 99 ? '99+' : unreadCount}
+          </span>
+        )}
+      </button>
+
+      {/* Chat Drawer */}
+      {isChatOpen && (
+        <div className="fixed inset-y-0 right-0 w-full sm:w-96 bg-white shadow-[0_0_50px_rgba(0,0,0,0.1)] z-50 flex flex-col transform transition-transform duration-300">
+          <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 backdrop-blur-xl">
+            <h2 className="text-xl font-bold text-slate-800 flex items-center"><MessageSquare className="mr-2 text-primary-500" size={24}/> Group Chat</h2>
+            <button onClick={() => setIsChatOpen(false)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors">
+              <X size={24} />
+            </button>
+          </div>
+          
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/30">
+            {messages.map((msg, idx) => {
+              const isMe = msg.sender?._id === user?._id;
+              return (
+                <div key={idx} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-[75%] rounded-2xl px-4 py-2 ${isMe ? 'bg-primary-600 text-white rounded-tr-sm' : 'bg-white text-slate-700 border border-slate-100 rounded-tl-sm shadow-sm'}`}>
+                    {!isMe && <div className="text-xs font-bold text-primary-500 mb-1">{msg.sender?.name}</div>}
+                    <div className="text-sm">{msg.text}</div>
+                    <div className={`text-[10px] mt-1 ${isMe ? 'text-primary-200 text-right' : 'text-slate-400 text-right'}`}>
+                      {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+            <div ref={messagesEndRef} />
+          </div>
+
+          <form onSubmit={handleSendMessage} className="p-4 border-t border-slate-100 bg-white">
+            <div className="flex items-center space-x-2">
+              <input 
+                type="text"
+                value={newMessage}
+                onChange={e => setNewMessage(e.target.value)}
+                placeholder="Type a message..."
+                className="flex-1 px-4 py-3 bg-slate-100 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/50 transition-all"
+              />
+              <button 
+                type="submit"
+                disabled={!newMessage.trim()}
+                className="w-12 h-12 bg-primary-600 text-white rounded-full flex items-center justify-center hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0"
+              >
+                <Send size={20} className="ml-1" />
+              </button>
+            </div>
+          </form>
         </div>
       )}
     </div>

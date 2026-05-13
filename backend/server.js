@@ -11,6 +11,7 @@ import settlementRoutes from './routes/settlementRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
 import invitationRoutes from './routes/invitationRoutes.js';
+import messageRoutes from './routes/messageRoutes.js';
 
 dotenv.config();
 
@@ -33,6 +34,7 @@ app.use('/api/settlements', settlementRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/invitations', invitationRoutes);
+app.use('/api/messages', messageRoutes);
 
 // Socket.io connection
 io.on('connection', (socket) => {

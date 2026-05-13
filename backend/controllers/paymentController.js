@@ -8,15 +8,26 @@ const getRazorpayInstance = () => {
   });
 };
 
-// @desc    Create Razorpay Order
 // @route   POST /api/payments/order
-// @access  Private
+
 export const createOrder = async (req, res) => {
   try {
-    const razorpay = getRazorpayInstance();
     const { amount } = req.body; 
+    
+    // Razorpay requires a minimum of 1 INR
+    if (!amount || isNaN(amount) || amount < 1) {
+      return res.status(400).json({ 
+        message: 'Error creating order', 
+        error: 'Razorpay requires a minimum amount of ₹1.00' 
+      });
+    }
+
+    const razorpay = getRazorpayInstance();
+
+    const rzpAmount = Math.min(Number(amount), 500000);
+    
     const options = {
-      amount: Math.round(Number(amount) * 100), 
+      amount: Math.round(rzpAmount * 100), 
       currency: "INR",
       receipt: `receipt_${Date.now()}`,
     };
@@ -24,13 +35,14 @@ export const createOrder = async (req, res) => {
     const order = await razorpay.orders.create(options);
     res.json(order);
   } catch (error) {
-    res.status(500).json({ message: 'Error creating order', error: error.message });
+    console.error("Razorpay Error:", error);
+    const detailedError = error?.error?.description || error?.message || 'Unknown server error';
+    res.status(500).json({ message: 'Error creating order', error: detailedError });
   }
 };
 
-// @desc    Verify Razorpay Payment
+
 // @route   POST /api/payments/verify
-// @access  Private
 export const verifyPayment = async (req, res) => {
   try {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
@@ -50,9 +62,9 @@ export const verifyPayment = async (req, res) => {
   }
 };
 
-// @desc    Get Razorpay Key ID
+
 // @route   GET /api/payments/config
-// @access  Private
+
 export const getConfig = (req, res) => {
   res.json({ key: process.env.RAZORPAY_KEY_ID });
 };
